@@ -5,6 +5,7 @@ import { HttpError } from "../errors/http-error";
 import { JWT_SECRET } from "../configs";
 import jwt from "jsonwebtoken";
 
+
 let userRepository = new UserRepository();
 
 export class UserService {
@@ -37,7 +38,6 @@ export class UserService {
 
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
         return { token, user }
-
-
     }
+    
 }
