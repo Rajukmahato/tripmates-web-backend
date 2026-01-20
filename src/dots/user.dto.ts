@@ -1,12 +1,18 @@
 import { z } from "zod";
-import { UserBaseSchema } from "../types/user.type";
+import { UserBaseSchema, UserSchema } from "../types/user.type";
 
 export const CreateUserDto = UserBaseSchema.pick({
   fullName: true,
   phoneNumber: true,
   password: true,
   confirmPassword: true,
-});
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    message: "Password does not match",
+    path: ["confirmPassword"],
+  }
+);
 
 export type CreateUserDto = z.infer<typeof CreateUserDto>;
 
