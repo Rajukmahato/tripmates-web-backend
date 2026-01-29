@@ -10,6 +10,10 @@ let userRepository = new UserRepository();
 
 export class UserService {
     async registerUser(userData: CreateUserDto) {
+        const checkEmail = await userRepository.getUserByEmail(userData.email);
+        if (checkEmail) {
+            throw new HttpError(409, "Email already in use");
+        }
         const checkPhoneNumber = await userRepository.getUserByPhoneNumber(userData.phoneNumber);
         if (checkPhoneNumber) {
             throw new HttpError(409, "Phone Number already in use");
@@ -21,7 +25,7 @@ export class UserService {
     }
 
     async loginUser(loginData: LoginUserDto) {
-        const user = await userRepository.getUserByPhoneNumber(loginData.phoneNumber);
+        const user = await userRepository.getUserByEmail(loginData.email);
         if (!user) {
             throw new HttpError(404, "User not found!");
         }
@@ -32,6 +36,7 @@ export class UserService {
 
         const payload = {
             id: user._id,
+            email: user.email,
             phoneNumber: user.phoneNumber,
             role: user.role
         }

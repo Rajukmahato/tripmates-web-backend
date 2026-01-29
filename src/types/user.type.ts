@@ -6,6 +6,7 @@ import { z } from "zod";
  */
 export const UserBaseSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 letters long"),
+  email: z.string().email("Invalid email address"),
   phoneNumber: z
     .string()
     .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits (0-9)"),
