@@ -5,14 +5,6 @@ import { IUser } from '../modules/user.model';
 import { UserRepository } from '../repositories/user.repository';
 import { HttpError } from '../errors/http-error';
 
-declare global {
-    namespace Express {
-        interface Request {
-            user?: Record<string, any> | IUser
-        }
-    }
-}
-
 let userRepository = new UserRepository();
 
 export const authorizedMiddleware =

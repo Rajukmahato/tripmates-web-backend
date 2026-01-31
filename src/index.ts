@@ -4,6 +4,7 @@ import bodyparser from 'body-parser'
 import { PORT } from "./configs";
 import { connectDb } from "./database/mongodb";
 import authRouters from "./routes/auth.route";
+import userRouters from "./routes/user.route";
 import cors from 'cors';
 
 dotenv.config();
@@ -18,6 +19,8 @@ let corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyparser.json())
 app.use("/api/auth", authRouters);
+app.use("/api/user", userRouters);
+app.use("/uploads", express.static("uploads"));
 
 
 app.get("/", (req: Request, res: Response) => {
