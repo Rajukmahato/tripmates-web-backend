@@ -5,6 +5,7 @@ export interface IUserRepository {
     getUserByPhoneNumber(phoneNumber: string): Promise<IUser | null>;
     getUserByEmail(email: string): Promise<IUser | null>;
     getUserById(userId: string): Promise<IUser | null>;
+    updateUser(userId: string, userData: Partial<IUser>): Promise<IUser | null>;
 }
 
 export class UserRepository implements IUserRepository {
@@ -27,5 +28,14 @@ export class UserRepository implements IUserRepository {
     async createUser(userData: Partial<IUser>): Promise<IUser> {
         const user = new UserModel(userData);
         return await user.save();
+    }
+
+    async updateUser(userId: string, userData: Partial<IUser>): Promise<IUser | null> {
+        const user = await UserModel.findByIdAndUpdate(
+            userId,
+            { $set: userData },
+            { new: true, runValidators: true }
+        ).select('-password');
+        return user;
     }
 }

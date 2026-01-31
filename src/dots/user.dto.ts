@@ -23,3 +23,16 @@ export const LoginUserDto = z.object({
 });
 
 export type LoginUserDto = z.infer<typeof LoginUserDto>;
+
+export const UpdateUserDto = z.object({
+  fullName: z.string().min(3, "Full name must be at least 3 letters long").optional(),
+  phoneNumber: z
+    .string()
+    .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits (0-9)")
+    .optional(),
+  bio: z.string().optional(),
+  location: z.string().optional(),
+  profileImagePath: z.string().optional(),
+});
+
+export type UpdateUserDto = z.infer<typeof UpdateUserDto>;

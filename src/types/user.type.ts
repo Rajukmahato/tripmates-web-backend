@@ -5,7 +5,7 @@ import { z } from "zod";
  * Used for DTOs like login, register, update, etc.
  */
 export const UserBaseSchema = z.object({
-  fullName: z.string().min(3, "Full name must be at least 3 letters long"),
+  fullName: z.string().min(3, "Full name must be at least 3 letters long").default(""),
   email: z.string().email("Invalid email address"),
   phoneNumber: z
     .string()
@@ -16,6 +16,9 @@ export const UserBaseSchema = z.object({
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[0-9]/, "Password must contain at least one number"),
   confirmPassword: z.string(),
+  bio: z.string().default(""),
+  location: z.string().default(""),
+  profileImagePath: z.string().default(""),
 });
 
 /**
