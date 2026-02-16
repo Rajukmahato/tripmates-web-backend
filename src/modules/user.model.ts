@@ -11,6 +11,8 @@ const userMongoSchema: Schema = new Schema(
         bio: { type: String, required: false, default: "" },
         location: { type: String, required: false, default: "" },
         profileImagePath: { type: String, required: false, default: "" },
+        resetPasswordToken: { type: String },
+        resetPasswordExpires: { type: Date },
     },
     {
         timestamps: true,
@@ -22,6 +24,8 @@ export interface IUser extends UserType, Document {
     _id: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
+    resetPasswordToken?: string;
+    resetPasswordExpires?: Date;
 }
 
 export const UserModel = mongoose.model<IUser>("User", userMongoSchema);
