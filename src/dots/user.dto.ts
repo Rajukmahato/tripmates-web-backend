@@ -36,3 +36,56 @@ export const UpdateUserDto = z.object({
 });
 
 export type UpdateUserDto = z.infer<typeof UpdateUserDto>;
+
+export const ForgotPasswordDto = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export type ForgotPasswordDto = z.infer<typeof ForgotPasswordDto>;
+
+export const ResetPasswordDto = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string(),
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  }
+);
+
+export type ResetPasswordDto = z.infer<typeof ResetPasswordDto>;
+
+// ===== ADMIN DTOs =====
+
+export const AdminCreateUserDto = UserBaseSchema.pick({
+  fullName: true,
+  email: true,
+  phoneNumber: true,
+  password: true,
+  bio: true,
+  location: true,
+  profileImagePath: true,
+});
+
+export type AdminCreateUserDto = z.infer<typeof AdminCreateUserDto>;
+
+export const AdminUpdateUserDto = z.object({
+  fullName: z.string().min(3, "Full name must be at least 3 letters long").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  phoneNumber: z
+    .string()
+    .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits (0-9)")
+    .optional(),
+  bio: z.string().optional(),
+  location: z.string().optional(),
+  profileImagePath: z.string().optional(),
+  role: z.enum(["user", "admin"]).optional(),
+});
+
+export type AdminUpdateUserDto = z.infer<typeof AdminUpdateUserDto>;
