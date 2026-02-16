@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
 import { UpdateUserDto } from "../dots/user.dto";
+import { renameUploadedFile } from "../middlewares/upload.middleware";
 import z from "zod";
 
 const userService = new UserService();
@@ -58,10 +59,12 @@ export class UserController {
                 });
             }
 
-            // Add file path if file was uploaded
             let updateData = { ...parsedData.data };
+            
+            // If file was uploaded, rename it with the user's ID
             if (req.file) {
-                updateData.profileImagePath = `/uploads/profiles/${req.file.filename}`;
+                const finalFilename = renameUploadedFile(req.file.filename, userId);
+                updateData.profileImagePath = `/uploads/profiles/${finalFilename}`;
             }
 
             const updatedUser = await userService.updateUserProfile(userId, updateData);
