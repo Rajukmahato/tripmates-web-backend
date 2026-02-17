@@ -101,6 +101,12 @@ export class AuthController {
 
     async forgotPassword(req: Request, res: Response) {
         try {
+            console.log('🔐 Forgot Password Request:', {
+                email: req.body.email,
+                platform: req.body.platform,
+                receivedBody: req.body
+            });
+
             const parsedData = ForgotPasswordDto.safeParse(req.body);
             if (!parsedData.success) {
                 return res.status(400).json({
@@ -109,12 +115,22 @@ export class AuthController {
                 });
             }
 
+            console.log('✅ Parsed Data:', {
+                email: parsedData.data.email,
+                platform: parsedData.data.platform
+            });
+
             const result = await userService.forgotPassword(parsedData.data);
             return res.status(200).json({
                 success: true,
                 message: result.message
             });
         } catch (error: Error | any) {
+            console.error('❌ Forgot password error:', {
+                message: error.message,
+                statusCode: error.statusCode,
+                stack: error.stack
+            });
             return res.status(error.statusCode || 500).json({
                 success: false,
                 message: error.message || "Internal Server Error"
