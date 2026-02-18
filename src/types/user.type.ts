@@ -19,6 +19,11 @@ export const UserBaseSchema = z.object({
   bio: z.string().default(""),
   location: z.string().default(""),
   profileImagePath: z.string().default(""),
+  travelInterests: z.array(z.string()).default([]),
+  budgetRange: z.object({
+    min: z.number().min(0, "Minimum budget must be 0 or greater").default(0),
+    max: z.number().min(0, "Maximum budget must be 0 or greater").default(0),
+  }).default({ min: 0, max: 0 }),
 });
 
 /**

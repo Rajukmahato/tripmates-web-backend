@@ -171,4 +171,106 @@ export class AdminController {
             });
         }
     }
+
+    // ===== STATS METHODS =====
+
+    async getUserStats(req: Request, res: Response) {
+        try {
+            const stats = await userService.getUserStats();
+            return res.status(200).json({
+                success: true,
+                message: "User statistics retrieved successfully",
+                data: stats
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    // ===== ANALYTICS METHODS =====
+
+    async getAnalyticsOverview(req: Request, res: Response) {
+        try {
+            const analytics = await userService.getAnalyticsOverview();
+            return res.status(200).json({
+                success: true,
+                message: "Analytics overview retrieved successfully",
+                data: analytics
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    async getUsersAnalytics(req: Request, res: Response) {
+        try {
+            const period = (req.query.period as string) || "month";
+            const analytics = await userService.getUsersAnalytics(period);
+            return res.status(200).json({
+                success: true,
+                message: "Users analytics retrieved successfully",
+                data: analytics
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    async getTripsAnalytics(req: Request, res: Response) {
+        try {
+            const period = (req.query.period as string) || "month";
+            const analytics = await userService.getTripsAnalytics(period);
+            return res.status(200).json({
+                success: true,
+                message: "Trips analytics retrieved successfully",
+                data: analytics
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    async getMatchesAnalytics(req: Request, res: Response) {
+        try {
+            const analytics = await userService.getMatchesAnalytics();
+            return res.status(200).json({
+                success: true,
+                message: "Matches analytics retrieved successfully",
+                data: analytics
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    async getPerformanceAnalytics(req: Request, res: Response) {
+        try {
+            const analytics = await userService.getPerformanceAnalytics();
+            return res.status(200).json({
+                success: true,
+                message: "Performance analytics retrieved successfully",
+                data: analytics
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
 }

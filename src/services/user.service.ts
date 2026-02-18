@@ -97,6 +97,12 @@ export class UserService {
     // ===== PASSWORD RESET METHODS =====
 
     async forgotPassword(forgotPasswordData: ForgotPasswordDto) {
+        console.log('📧 UserService.forgotPassword called with:', {
+            email: forgotPasswordData.email,
+            platform: forgotPasswordData.platform,
+            platformType: typeof forgotPasswordData.platform
+        });
+
         const user = await userRepository.getUserByEmail(forgotPasswordData.email);
         if (!user) {
             // Don't reveal that the user doesn't exist for security
@@ -113,12 +119,16 @@ export class UserService {
             resetPasswordExpires: new Date(Date.now() + 3600000) // 1 hour
         });
 
-        // Send email
+        // Send email with platform-specific reset link
         try {
+            const platformToUse = forgotPasswordData.platform || 'web';
+            console.log('📬 Sending password reset email with platform:', platformToUse);
+            
             await emailService.sendPasswordResetEmail(
                 user.email,
                 resetToken,
-                user.fullName || 'User'
+                user.fullName || 'User',
+                platformToUse
             );
         } catch (error) {
             // Clear the reset token if email fails
@@ -281,6 +291,160 @@ export class UserService {
             throw new HttpError(500, "Failed to delete user");
         }
         return { message: "User deleted successfully" };
+    }
+
+    // ===== STATS METHODS =====
+
+    async getUserStats() {
+        const { UserModel } = await import("../modules/user.model");
+
+        const [totalUsers, adminUsers] = await Promise.all([
+            UserModel.countDocuments(),
+            UserModel.countDocuments({ role: "admin" }),
+        ]);
+
+        return {
+            totalUsers,
+            activeUsers: totalUsers, // Can be refined based on activity tracking
+            adminUsers,
+        };
+    }
+
+    // ===== ANALYTICS METHODS =====
+
+    async getAnalyticsOverview() {
+        const { UserModel } = await import("../modules/user.model");
+        const { TripModel } = await import("../modules/trip.model");
+        const { PartnerRequestModel } = await import("../modules/partnerRequest.model");
+        const { MessageModel } = await import("../modules/message.model");
+
+        const totalUsers = await UserModel.countDocuments();
+        const totalTrips = await TripModel.countDocuments();
+        const totalMatches = await PartnerRequestModel.countDocuments({ status: "accepted" });
+        const totalChats = await MessageModel.distinct("conversation").then(c => c.length);
+
+        // Active users today (created today or have activity)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const activeUsersToday = await UserModel.countDocuments({
+            updatedAt: { $gte: today }
+        });
+
+        return {
+            totalUsers,
+            totalTrips,
+            totalMatches,
+            totalChats,
+            activeUsersToday
+        };
+    }
+
+    async getUsersAnalytics(period: string = "month") {
+        const { UserModel } = await import("../modules/user.model");
+
+        let startDate = new Date();
+        let groupBy: any;
+
+        switch (period) {
+            case "week":
+                startDate.setDate(startDate.getDate() - 7);
+                groupBy = { $dayOfWeek: "$createdAt" };
+                break;
+            case "year":
+                startDate.setFullYear(startDate.getFullYear() - 1);
+                groupBy = { $month: "$createdAt" };
+                break;
+            case "month":
+            default:
+                startDate.setMonth(startDate.getMonth() - 1);
+                groupBy = { $dayOfMonth: "$createdAt" };
+                break;
+        }
+
+        const growth = await UserModel.aggregate([
+            { $match: { createdAt: { $gte: startDate } } },
+            {
+                $group: {
+                    _id: groupBy,
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        return { period, growth };
+    }
+
+    async getTripsAnalytics(period: string = "month") {
+        const { TripModel } = await import("../modules/trip.model");
+
+        let startDate = new Date();
+        let groupBy: any;
+
+        switch (period) {
+            case "week":
+                startDate.setDate(startDate.getDate() - 7);
+                groupBy = { $dayOfWeek: "$createdAt" };
+                break;
+            case "year":
+                startDate.setFullYear(startDate.getFullYear() - 1);
+                groupBy = { $month: "$createdAt" };
+                break;
+            case "month":
+            default:
+                startDate.setMonth(startDate.getMonth() - 1);
+                groupBy = { $dayOfMonth: "$createdAt" };
+                break;
+        }
+
+        const trends = await TripModel.aggregate([
+            { $match: { createdAt: { $gte: startDate } } },
+            {
+                $group: {
+                    _id: groupBy,
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        return { period, trends };
+    }
+
+    async getMatchesAnalytics() {
+        const { PartnerRequestModel } = await import("../modules/partnerRequest.model");
+
+        const totalRequests = await PartnerRequestModel.countDocuments();
+        const accepted = await PartnerRequestModel.countDocuments({ status: "accepted" });
+        const pending = await PartnerRequestModel.countDocuments({ status: "pending" });
+        const rejected = await PartnerRequestModel.countDocuments({ status: "rejected" });
+
+        const acceptanceRate = totalRequests > 0 ? ((accepted / totalRequests) * 100).toFixed(2) : "0";
+
+        return {
+            totalRequests,
+            accepted,
+            pending,
+            rejected,
+            acceptanceRate: `${acceptanceRate}%`
+        };
+    }
+
+    async getPerformanceAnalytics() {
+        const { UserModel } = await import("../modules/user.model");
+        const mongoose = await import("mongoose");
+
+        const databaseStatus = mongoose.default.connection.readyState === 1 ? "Connected" : "Disconnected";
+        const activeConnections = mongoose.default.connection.readyState === 1 ? 1 : 0;
+
+        // Simple response time calculation (placeholder)
+        const averageResponseTime = "~200ms";
+
+        return {
+            averageResponseTime,
+            activeConnections,
+            databaseStatus
+        };
     }
     
 }

@@ -33,12 +33,18 @@ export const UpdateUserDto = z.object({
   bio: z.string().optional(),
   location: z.string().optional(),
   profileImagePath: z.string().optional(),
+  travelInterests: z.array(z.string()).optional(),
+  budgetRange: z.object({
+    min: z.number().min(0, "Minimum budget must be 0 or greater"),
+    max: z.number().min(0, "Maximum budget must be 0 or greater"),
+  }).optional(),
 });
 
 export type UpdateUserDto = z.infer<typeof UpdateUserDto>;
 
 export const ForgotPasswordDto = z.object({
   email: z.string().email("Invalid email address"),
+  platform: z.enum(["android", "ios", "web"]).optional().default("web"),
 });
 
 export type ForgotPasswordDto = z.infer<typeof ForgotPasswordDto>;
@@ -85,6 +91,11 @@ export const AdminUpdateUserDto = z.object({
   bio: z.string().optional(),
   location: z.string().optional(),
   profileImagePath: z.string().optional(),
+  travelInterests: z.array(z.string()).optional(),
+  budgetRange: z.object({
+    min: z.number().min(0, "Minimum budget must be 0 or greater"),
+    max: z.number().min(0, "Maximum budget must be 0 or greater"),
+  }).optional(),
   role: z.enum(["user", "admin"]).optional(),
 });
 

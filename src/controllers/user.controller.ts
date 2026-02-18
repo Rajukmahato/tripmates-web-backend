@@ -7,6 +7,35 @@ import z from "zod";
 const userService = new UserService();
 
 export class UserController {
+    async getAllUsers(req: Request, res: Response) {
+        try {
+            const pageParam = req.query.page ? parseInt(req.query.page as string) : 1;
+            const limitParam = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+            const page = isNaN(pageParam) ? 1 : pageParam;
+            const limit = isNaN(limitParam) ? 50 : limitParam;
+
+            if (page < 1 || limit < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Page and limit must be positive numbers"
+                });
+            }
+
+            const result = await userService.getAllUsers(page, limit);
+            return res.status(200).json({
+                success: true,
+                message: "Users retrieved successfully",
+                data: result.users,
+                pagination: result.pagination
+            });
+        } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
     async getProfile(req: Request, res: Response) {
         try {
             const userId =
