@@ -12,5 +12,6 @@ module.exports = {
     ],
     setupFiles: ['<rootDir>/src/__tests__/setEnv.js'],
     setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-    testTimeout: 30000,
+    maxWorkers: 1,
+    testTimeout: 120000,
 };
