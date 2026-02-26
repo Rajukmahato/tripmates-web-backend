@@ -1,0 +1,147 @@
+import { Request, Response } from "express";
+import { notificationService } from "../services/notification.service";
+import { RegisterTokenDto } from "../dots/notification.dto";
+import { HttpError } from "../errors/http-error";
+
+export class NotificationController {
+    /**
+     * Register FCM device token
+     * POST /api/notifications/register-token
+     * Body: { token: string, deviceType?: string }
+     */
+    async registerToken(req: Request, res: Response) {
+        try {
+            const userId = req.user?._id.toString();
+            if (!userId) {
+                throw new HttpError(401, "User not authenticated");
+            }
+
+            const validatedData = RegisterTokenDto.parse(req.body);
+            const { token } = validatedData;
+
+            const result = await notificationService.registerToken(userId, token);
+
+            res.status(200).json({
+                success: true,
+                message: result.message,
+            });
+        } catch (error: any) {
+            res.status(error.statusCode || 400).json({
+                success: false,
+                message: error.message || "Failed to register token",
+            });
+        }
+    }
+
+    /**
+     * Get notifications for current user
+     * GET /api/notifications?isRead=false&page=1&limit=20
+     */
+    async getNotifications(req: Request, res: Response) {
+        try {
+            const userId = req.user?._id.toString();
+            if (!userId) {
+                throw new HttpError(401, "User not authenticated");
+            }
+
+            const isRead = req.query.isRead === "true" ? true : req.query.isRead === "false" ? false : undefined;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 20;
+
+            const result = await notificationService.getNotifications(userId, isRead, page, limit);
+
+            res.status(200).json({
+                success: true,
+                message: "Notifications retrieved successfully",
+                data: result,
+            });
+        } catch (error: any) {
+            res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to get notifications",
+            });
+        }
+    }
+
+    /**
+     * Mark notification as read
+     * PUT /api/notifications/:id/read
+     */
+    async markAsRead(req: Request, res: Response) {
+        try {
+            const userId = req.user?._id.toString();
+            if (!userId) {
+                throw new HttpError(401, "User not authenticated");
+            }
+
+            const notificationId = req.params.id;
+
+            const notification = await notificationService.markAsRead(userId, notificationId);
+
+            res.status(200).json({
+                success: true,
+                message: "Notification marked as read",
+                data: notification,
+            });
+        } catch (error: any) {
+            res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to mark notification as read",
+            });
+        }
+    }
+
+    /**
+     * Mark all notifications as read
+     * PUT /api/notifications/read-all
+     */
+    async markAllAsRead(req: Request, res: Response) {
+        try {
+            const userId = req.user?._id.toString();
+            if (!userId) {
+                throw new HttpError(401, "User not authenticated");
+            }
+
+            const result = await notificationService.markAllAsRead(userId);
+
+            res.status(200).json({
+                success: true,
+                message: "All notifications marked as read",
+                data: result,
+            });
+        } catch (error: any) {
+            res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to mark all notifications as read",
+            });
+        }
+    }
+
+    /**
+     * Get unread notification count
+     * GET /api/notifications/unread-count
+     */
+    async getUnreadCount(req: Request, res: Response) {
+        try {
+            const userId = req.user?._id.toString();
+            if (!userId) {
+                throw new HttpError(401, "User not authenticated");
+            }
+
+            const result = await notificationService.getUnreadCount(userId);
+
+            res.status(200).json({
+                success: true,
+                message: "Unread count retrieved successfully",
+                data: result,
+            });
+        } catch (error: any) {
+            res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to get unread count",
+            });
+        }
+    }
+}
+
+export const notificationController = new NotificationController();
