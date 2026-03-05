@@ -3,8 +3,8 @@
  * Optimized MongoDB connection setup
  */
 
-import mongoose from "mongoose";
-import { MONGODB_URI } from "../configs";
+import mongoose from 'mongoose';
+import { MONGODB_URI } from '../configs';
 
 /**
  * MongoDB connection options with pooling
@@ -27,6 +27,19 @@ const mongooseOptions: mongoose.ConnectOptions = {
     // Connection monitoring
     heartbeatFrequencyMS: 10000, // Monitor connection every 10s
 
+    // Read preferences
+    readPreference: 'primary', // Always read from primary
+    readConcern: { level: 'majority' }, // Strong consistency
+
+    // Write concerns
+    writeConcern: { w: 'majority', j: true }, // Ensure writes are journaled
+
+    // Connection string options
+    authSource: 'admin',
+    retryWrites: true,
+    w: 'majority',
+    journal: true,
+
     // Auto index creation (disable in production)
     autoIndex: process.env.NODE_ENV !== 'production',
 };
@@ -36,15 +49,11 @@ const mongooseOptions: mongoose.ConnectOptions = {
  */
 export const connectDb = async (): Promise<void> => {
     try {
-        // Use separate test database when running tests
-        const dbUri = process.env.NODE_ENV === 'test'
-            ? (process.env.MONGODB_TEST_URI || MONGODB_URI.replace(/\/[^/]*$/, '/tripmates_test'))
-            : MONGODB_URI;
-
         console.log('🔌 Connecting to MongoDB with connection pooling...');
-        
+        console.log(`📍 Database URI: ${MONGODB_URI.replace(/:[^:]*@/, ':****@')}`);
+
         // Create connection with optimized options
-        await mongoose.connect(dbUri, mongooseOptions);
+        await mongoose.connect(MONGODB_URI, mongooseOptions);
 
         // Get connection stats
         const connection = mongoose.connection;
@@ -52,8 +61,9 @@ export const connectDb = async (): Promise<void> => {
         console.log('✅ MongoDB connected successfully');
         console.log(`📊 Connection Pool Status:`);
         console.log(`   - Ready State: ${connection.readyState}`);
+        console.log(`   - Host: ${connection.host}`);
+        console.log(`   - Port: ${connection.port}`);
         console.log(`   - Database: ${connection.name}`);
-        console.log(`   - Models: ${connection.modelNames().length}`);
 
         // Listen for connection events
         connection.on('disconnected', () => {
@@ -69,7 +79,7 @@ export const connectDb = async (): Promise<void> => {
         });
 
     } catch (error) {
-        console.error("❌ MongoDB connection error:", error);
+        console.error('❌ Failed to connect to MongoDB:', error);
         process.exit(1);
     }
 };
@@ -94,8 +104,10 @@ export const getConnectionStats = () => {
     const connection = mongoose.connection;
     return {
         readyState: connection.readyState,
+        host: connection.host,
+        port: connection.port,
         database: connection.name,
-        collections: Object.keys(connection.collections).length,
+        collections: connection.collections,
         models: connection.modelNames(),
     };
 };

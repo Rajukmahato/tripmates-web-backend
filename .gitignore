@@ -43,3 +43,6 @@ uploads/
 
 # Misc
 *.log
+
+# Documentation
+*.md
