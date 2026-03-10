@@ -1,5 +1,5 @@
 import { UserRepository } from "../repositories/user.repository";
-import { CreateUserDto, LoginUserDto, AdminCreateUserDto, AdminUpdateUserDto, ForgotPasswordDto, ResetPasswordDto } from "../dots/user.dto";
+import { CreateUserDto, LoginUserDto, AdminCreateUserDto, AdminUpdateUserDto, ForgotPasswordDto, ResetPasswordDto, VerifyOTPDto, ResetPasswordWithOTPDto } from "../dots/user.dto";
 import bcryptjs from "bcryptjs";
 import { HttpError } from "../errors/http-error";
 import { JWT_SECRET } from "../configs";
@@ -109,37 +109,75 @@ export class UserService {
             return { message: "If that email exists, a reset link has been sent" };
         }
 
-        // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const platformToUse = forgotPasswordData.platform || 'web';
+        
+        // For mobile platforms (android/ios), send OTP
+        if (platformToUse === 'android' || platformToUse === 'ios') {
+            // Generate 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
 
-        // Save hashed token and expiry (1 hour from now)
-        await userRepository.updateUser(user._id.toString(), {
-            resetPasswordToken: hashedToken,
-            resetPasswordExpires: new Date(Date.now() + 3600000) // 1 hour
-        });
-
-        // Send email with platform-specific reset link
-        try {
-            const platformToUse = forgotPasswordData.platform || 'web';
-            console.log('📬 Sending password reset email with platform:', platformToUse);
-            
-            await emailService.sendPasswordResetEmail(
-                user.email,
-                resetToken,
-                user.fullName || 'User',
-                platformToUse
-            );
-        } catch (error) {
-            // Clear the reset token if email fails
+            // Save hashed OTP and expiry (10 minutes from now)
             await userRepository.updateUser(user._id.toString(), {
-                resetPasswordToken: undefined,
-                resetPasswordExpires: undefined
+                resetPasswordOTP: hashedOTP,
+                resetPasswordOTPExpires: new Date(Date.now() + 600000) // 10 minutes
             });
-            throw new HttpError(500, "Failed to send reset email. Please try again.");
-        }
 
-        return { message: "If that email exists, a reset link has been sent" };
+            // Send OTP via email
+            try {
+                console.log('📬 Sending OTP email for mobile platform:', platformToUse);
+                await emailService.sendOTPEmail(
+                    user.email,
+                    otp,
+                    user.fullName || 'User'
+                );
+                return { 
+                    message: "OTP sent to your email",
+                    requiresOTP: true 
+                };
+            } catch (error) {
+                // Clear the OTP if email fails
+                await userRepository.updateUser(user._id.toString(), {
+                    resetPasswordOTP: undefined,
+                    resetPasswordOTPExpires: undefined
+                });
+                throw new HttpError(500, "Failed to send OTP email. Please try again.");
+            }
+        } else {
+            // For web platform, use the existing token-based flow
+            // Generate reset token
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+            // Save hashed token and expiry (1 hour from now)
+            await userRepository.updateUser(user._id.toString(), {
+                resetPasswordToken: hashedToken,
+                resetPasswordExpires: new Date(Date.now() + 3600000) // 1 hour
+            });
+
+            // Send email with platform-specific reset link
+            try {
+                console.log('📬 Sending password reset email with platform:', platformToUse);
+                
+                await emailService.sendPasswordResetEmail(
+                    user.email,
+                    resetToken,
+                    user.fullName || 'User',
+                    platformToUse
+                );
+                return { 
+                    message: "If that email exists, a reset link has been sent",
+                    requiresOTP: false
+                };
+            } catch (error) {
+                // Clear the reset token if email fails
+                await userRepository.updateUser(user._id.toString(), {
+                    resetPasswordToken: undefined,
+                    resetPasswordExpires: undefined
+                });
+                throw new HttpError(500, "Failed to send reset email. Please try again.");
+            }
+        }
     }
 
     async resetPassword(resetPasswordData: ResetPasswordDto) {
@@ -163,6 +201,90 @@ export class UserService {
             password: hashedPassword,
             resetPasswordToken: undefined,
             resetPasswordExpires: undefined
+        });
+
+        // Send confirmation email
+        try {
+            await emailService.sendPasswordResetConfirmation(
+                user.email,
+                user.fullName || 'User'
+            );
+        } catch (error) {
+            console.error('Error sending confirmation email:', error);
+            // Don't throw error here, password was already reset successfully
+        }
+
+        return { message: "Password reset successful" };
+    }
+
+    async verifyOTP(verifyOTPData: VerifyOTPDto) {
+        console.log('🔐 UserService.verifyOTP called with:', verifyOTPData.email);
+
+        const user = await userRepository.getUserByEmail(verifyOTPData.email);
+        if (!user) {
+            throw new HttpError(400, "Invalid OTP");
+        }
+
+        // Check if OTP exists and hasn't expired
+        if (!user.resetPasswordOTP || !user.resetPasswordOTPExpires) {
+            throw new HttpError(400, "Invalid OTP");
+        }
+
+        if (user.resetPasswordOTPExpires < new Date()) {
+            throw new HttpError(400, "OTP has expired");
+        }
+
+        // Hash the provided OTP and compare with stored hash
+        const hashedOTP = crypto
+            .createHash('sha256')
+            .update(verifyOTPData.otp)
+            .digest('hex');
+
+        if (hashedOTP !== user.resetPasswordOTP) {
+            throw new HttpError(400, "Invalid OTP");
+        }
+
+        return { 
+            message: "OTP verified successfully",
+            verified: true 
+        };
+    }
+
+    async resetPasswordWithOTP(resetPasswordData: ResetPasswordWithOTPDto) {
+        console.log('🔐 UserService.resetPasswordWithOTP called');
+
+        const user = await userRepository.getUserByEmail(resetPasswordData.email);
+        if (!user) {
+            throw new HttpError(400, "Invalid request");
+        }
+
+        // Check if OTP exists and hasn't expired
+        if (!user.resetPasswordOTP || !user.resetPasswordOTPExpires) {
+            throw new HttpError(400, "Invalid or expired OTP");
+        }
+
+        if (user.resetPasswordOTPExpires < new Date()) {
+            throw new HttpError(400, "OTP has expired");
+        }
+
+        // Hash the provided OTP and compare with stored hash
+        const hashedOTP = crypto
+            .createHash('sha256')
+            .update(resetPasswordData.otp)
+            .digest('hex');
+
+        if (hashedOTP !== user.resetPasswordOTP) {
+            throw new HttpError(400, "Invalid OTP");
+        }
+
+        // Hash new password
+        const hashedPassword = await bcryptjs.hash(resetPasswordData.password, 10);
+
+        // Update password and clear OTP
+        await userRepository.updateUser(user._id.toString(), {
+            password: hashedPassword,
+            resetPasswordOTP: undefined,
+            resetPasswordOTPExpires: undefined
         });
 
         // Send confirmation email

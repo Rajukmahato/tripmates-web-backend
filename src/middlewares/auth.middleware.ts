@@ -9,7 +9,6 @@ let userRepository = new UserRepository();
 
 /**
  * Middleware to verify JWT token and attach user to request
- * Use this on protected routes
  */
 export const authorizedMiddleware = async (
     req: Request,

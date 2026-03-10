@@ -67,6 +67,32 @@ export const ResetPasswordDto = z.object({
 
 export type ResetPasswordDto = z.infer<typeof ResetPasswordDto>;
 
+export const VerifyOTPDto = z.object({
+  email: z.string().email("Invalid email address"),
+  otp: z.string().length(6, "OTP must be exactly 6 digits"),
+});
+
+export type VerifyOTPDto = z.infer<typeof VerifyOTPDto>;
+
+export const ResetPasswordWithOTPDto = z.object({
+  email: z.string().email("Invalid email address"),
+  otp: z.string().length(6, "OTP must be exactly 6 digits"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string(),
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  }
+);
+
+export type ResetPasswordWithOTPDto = z.infer<typeof ResetPasswordWithOTPDto>;
+
 // ===== ADMIN DTOs =====
 
 export const AdminCreateUserDto = UserBaseSchema.pick({

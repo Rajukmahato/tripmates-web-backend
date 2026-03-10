@@ -118,6 +118,54 @@ export class EmailService {
         }
     }
 
+    async sendOTPEmail(email: string, otp: string, userName: string) {
+        console.log('📧 EmailService.sendOTPEmail called');
+
+        const mailOptions = {
+            from: EMAIL_FROM,
+            to: email,
+            subject: 'Password Reset OTP - TripMates',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Password Reset OTP</h2>
+                    <p>Hello ${userName},</p>
+                    <p>You have requested to reset your password. Use the OTP code below to verify your identity:</p>
+                    <div style="margin: 30px 0; text-align: center;">
+                        <div style="background-color: #f0f0f0; display: inline-block; padding: 20px 40px; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #007bff;">
+                            ${otp}
+                        </div>
+                    </div>
+                    <p style="background-color: #fff3cd; padding: 12px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                        <strong>⏱️ This OTP will expire in 10 minutes.</strong>
+                    </p>
+                    <p>Enter this code in the TripMates app to proceed with resetting your password.</p>
+                    <p style="color: #dc3545; font-weight: bold;">Do not share this code with anyone!</p>
+                    <p>If you didn't request this, please ignore this email and your password will remain unchanged.</p>
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 12px;">
+                        This is an automated email. Please do not reply.<br/>
+                        If you have any issues, please contact support.
+                    </p>
+                </div>
+            `,
+        };
+
+        try {
+            // Verify transporter is configured
+            if (!EMAIL_USER || !EMAIL_PASSWORD) {
+                throw new Error('Email service not properly configured. Missing EMAIL_USER or EMAIL_PASSWORD.');
+            }
+            
+            await this.transporter.sendMail(mailOptions);
+            console.log('✅ OTP email sent successfully');
+            return true;
+        } catch (error: any) {
+            const errorMessage = error?.message || 'Unknown email error';
+            console.error('❌ Error sending OTP email:', errorMessage);
+            throw new Error(`Failed to send OTP email: ${errorMessage}`);
+        }
+    }
+
     async sendPasswordResetConfirmation(email: string, userName: string) {
         const mailOptions = {
             from: EMAIL_FROM,

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
-import { CreateUserDto, LoginUserDto, UpdateUserDto, ForgotPasswordDto, ResetPasswordDto } from "../dots/user.dto";
+import { CreateUserDto, LoginUserDto, UpdateUserDto, ForgotPasswordDto, ResetPasswordDto, VerifyOTPDto, ResetPasswordWithOTPDto } from "../dots/user.dto";
 import { renameUploadedFile } from "../middlewares/upload.middleware";
 import z, { success } from "zod";
 
@@ -154,6 +154,59 @@ export class AuthController {
                 message: result.message
             });
         } catch (error: Error | any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    async verifyOTP(req: Request, res: Response) {
+        try {
+            console.log('🔐 Verify OTP Request:', req.body);
+
+            const parsedData = VerifyOTPDto.safeParse(req.body);
+            if (!parsedData.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: z.prettifyError(parsedData.error)
+                });
+            }
+
+            const result = await userService.verifyOTP(parsedData.data);
+            return res.status(200).json({
+                success: true,
+                message: result.message,
+                verified: result.verified
+            });
+        } catch (error: Error | any) {
+            console.error('❌ Verify OTP error:', error.message);
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
+            });
+        }
+    }
+
+    async resetPasswordWithOTP(req: Request, res: Response) {
+        try {
+            console.log('🔐 Reset Password with OTP Request');
+
+            const parsedData = ResetPasswordWithOTPDto.safeParse(req.body);
+            if (!parsedData.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: z.prettifyError(parsedData.error)
+                });
+            }
+
+            const result = await userService.resetPasswordWithOTP(parsedData.data);
+            return res.status(200).json({
+                success: true,
+                message: result.message
+            });
+        } catch (error: Error | any) {
+            console.error('❌ Reset password with OTP error:', error.message);
             return res.status(error.statusCode || 500).json({
                 success: false,
                 message: error.message || "Internal Server Error"

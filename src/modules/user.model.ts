@@ -18,6 +18,8 @@ const userMongoSchema: Schema = new Schema(
         },
         resetPasswordToken: { type: String },
         resetPasswordExpires: { type: Date },
+        resetPasswordOTP: { type: String },
+        resetPasswordOTPExpires: { type: Date },
     },
     {
         timestamps: true,
@@ -31,6 +33,8 @@ export interface IUser extends UserType, Document {
     updatedAt: Date;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
+    resetPasswordOTP?: string;
+    resetPasswordOTPExpires?: Date;
 }
 
 export const UserModel = mongoose.model<IUser>("User", userMongoSchema);

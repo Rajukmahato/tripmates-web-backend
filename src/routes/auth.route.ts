@@ -12,7 +12,9 @@ const router = Router();
 router.post("/login", authController.loginUser);
 router.post("/register", authController.createUser);
 router.post("/forgot-password", passwordResetLimiter, authController.forgotPassword);
+router.post("/verify-otp", passwordResetLimiter, authController.verifyOTP);
 router.post("/reset-password", passwordResetLimiter, authController.resetPassword);
+router.post("/reset-password-otp", passwordResetLimiter, authController.resetPasswordWithOTP);
 router.put("/:id", authorizedMiddleware, uploadProfileImage.single("profileImage"), authController.updateUserProfile);
 
 export default router;
